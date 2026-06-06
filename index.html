@@ -2,13 +2,21 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Paperforge</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
-<script src="https://unpkg.com/html-docx-js/dist/html-docx.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<!-- Pinned versions + Subresource Integrity so a tampered/changed CDN file is rejected rather than executed. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"
+        integrity="sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e"
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"
+        integrity="sha384-weMABwrltA6jWR8DDe9Jp5blk+tZQh7ugpCsF3JwSA53WZM9/14PjS5LAJNHNjAI"
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"
+        integrity="sha384-nFoSjZIoH3CCp8W639jJyQkuPHinJ2NHe7on1xvlUA7SuGfJAfvMldrsoAVm6ECz"
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://unpkg.com/html-docx-js@0.3.1/dist/html-docx.js"
+        integrity="sha384-TtrQp5nveof/QP1+f/OLiEHL3GuOIRyl3IfsGxu5X45VO2vHeT4HRNmQuTR3Ea3w"
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&family=Dancing+Script:wght@600&family=Great+Vibes&family=Sacramento&display=swap');
 
@@ -308,6 +316,55 @@
     font-family: inherit;
     font-weight: 700;
   }
+
+  .color-input {
+    width: 38px;
+    height: 34px;
+    padding: 2px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(43, 53, 68, 0.09);
+    border-radius: 12px;
+    cursor: pointer;
+  }
+  .color-input:disabled { opacity: 0.4; cursor: not-allowed; }
+  .color-input::-webkit-color-swatch-wrapper { padding: 0; }
+  .color-input::-webkit-color-swatch { border: none; border-radius: 8px; }
+
+  .sig-ink-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 14px 0 4px;
+    flex-wrap: wrap;
+  }
+  .sig-ink-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .ink-swatch {
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px rgba(43, 53, 68, 0.18);
+    cursor: pointer;
+  }
+  .ink-swatch.active { box-shadow: 0 0 0 2px var(--accent); }
+  #sigInkCustom {
+    width: 30px;
+    height: 26px;
+    padding: 1px;
+    border: 1px solid rgba(43, 53, 68, 0.14);
+    border-radius: 8px;
+    cursor: pointer;
+    background: #fff;
+  }
+  #sigInkCustom::-webkit-color-swatch-wrapper { padding: 0; }
+  #sigInkCustom::-webkit-color-swatch { border: none; border-radius: 6px; }
 
   .view-controls {
     display: none;
@@ -1568,6 +1625,9 @@
       <input type="file" id="file" accept="application/pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
     </label>
     <div class="toolbar-divider"></div>
+    <button id="undoBtn" disabled title="Undo (Ctrl/Cmd+Z)"><span class="btn-icon">&#8634;</span> Undo</button>
+    <button id="redoBtn" disabled title="Redo (Ctrl/Cmd+Shift+Z)"><span class="btn-icon">&#8635;</span> Redo</button>
+    <div class="toolbar-divider"></div>
     <button id="textBtn" disabled>Text</button>
     <button id="sigBtn" disabled>Signature</button>
     <button id="eraseBtn" disabled title="Drag to whiteout any region">Erase</button>
@@ -1575,6 +1635,10 @@
     <div class="size-group">
       <span>Size</span>
       <input type="number" id="fontSize" class="font-size" value="14" min="6" max="72">
+    </div>
+    <div class="size-group">
+      <span>Color</span>
+      <input type="color" id="textColor" class="color-input" value="#000000" title="Text color" disabled>
     </div>
     <div class="view-controls" id="pdfViewControls" aria-label="PDF zoom controls">
       <button id="zoomOutBtn" type="button" disabled title="Zoom out">&minus;</button>
@@ -1686,13 +1750,21 @@
   <div id="docEditor" contenteditable="true" spellcheck="true" data-placeholder="Start typing…"></div>
 </main>
 
-<div id="sigModal">
+<div id="sigModal" role="dialog" aria-modal="true" aria-labelledby="sigModalTitle">
   <div class="modal-box">
-    <h3>Create your signature</h3>
+    <h3 id="sigModalTitle">Create your signature</h3>
     <div class="tabs">
       <button class="tab active" data-tab="draw">Draw</button>
       <button class="tab" data-tab="type">Type</button>
       <button class="tab" data-tab="upload">Upload</button>
+    </div>
+    <div class="sig-ink-row" id="sigInkRow">
+      <span class="sig-ink-label">Ink color</span>
+      <button type="button" class="ink-swatch active" data-ink="#1a1a4f" title="Navy" style="background:#1a1a4f"></button>
+      <button type="button" class="ink-swatch" data-ink="#000000" title="Black" style="background:#000000"></button>
+      <button type="button" class="ink-swatch" data-ink="#0f766e" title="Teal" style="background:#0f766e"></button>
+      <button type="button" class="ink-swatch" data-ink="#b91c1c" title="Red" style="background:#b91c1c"></button>
+      <input type="color" id="sigInkCustom" value="#1a1a4f" title="Custom ink color" aria-label="Custom ink color">
     </div>
     <div class="tab-panel active" data-panel="draw">
       <canvas id="sigCanvas" width="500" height="200" style="aspect-ratio: 5/2;"></canvas>
@@ -2019,6 +2091,14 @@ function sanitizeWinAnsi(s) {
   return out;
 }
 
+// Convert a #rrggbb string into a pdf-lib rgb() colour (0..1 channels).
+function hexToPdfRgb(hex, rgb) {
+  const m = /^#?([0-9a-fA-F]{6})$/.exec(hex || '');
+  if (!m) return rgb(0, 0, 0);
+  const n = parseInt(m[1], 16);
+  return rgb(((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255);
+}
+
 function isSupportedDocument(file) {
   return /\.pdf$/i.test(file.name) ||
     /\.docx$/i.test(file.name) ||
@@ -2087,6 +2167,7 @@ function saveDraftNow() {
         h: it.h,
         text: it.text || '',
         fontSize: it.fontSize || null,
+        color: it.color || null,
         dataUrl: it.dataUrl || null,
         original: it.original ?? null,
         pdfX: it.pdfX ?? null,
@@ -2163,11 +2244,134 @@ function updateMeta() {
   }
   workspaceMeta.classList.toggle('show', !!state.fileType);
   updateViewControls();
+  updateUndoRedoButtons();
 }
+
+// ── Undo / redo ──
+// Snapshot-based history. PDF snapshots store page dimensions so coordinates can
+// be reprojected if the zoom changed between snapshot and undo. Rapid edits
+// (e.g. typing) are coalesced via a short debounce so undo steps stay meaningful.
+const undoBtn = document.getElementById('undoBtn');
+const redoBtn = document.getElementById('redoBtn');
+const historyState = { stack: [], index: -1, limit: 80, suppressed: false };
+let historyTimer = null;
+
+function snapshotState() {
+  if (state.fileType === 'pdf') {
+    return {
+      type: 'pdf',
+      nextId: state.nextId,
+      pageDims: state.pages.map(p => ({ w: p.width, h: p.height })),
+      items: JSON.parse(JSON.stringify(state.items)),
+    };
+  }
+  if (state.fileType === 'docx') {
+    return { type: 'docx', html: docEditor.innerHTML };
+  }
+  return null;
+}
+
+function updateUndoRedoButtons() {
+  const canUndo = historyState.index > 0 && !state.isBusy;
+  const canRedo = historyState.index >= 0 && historyState.index < historyState.stack.length - 1 && !state.isBusy;
+  if (undoBtn) undoBtn.disabled = !canUndo;
+  if (redoBtn) redoBtn.disabled = !canRedo;
+}
+
+function pushHistory() {
+  if (historyState.suppressed) return;
+  const snap = snapshotState();
+  if (!snap) return;
+  historyState.stack = historyState.stack.slice(0, historyState.index + 1);
+  historyState.stack.push(snap);
+  if (historyState.stack.length > historyState.limit) historyState.stack.shift();
+  historyState.index = historyState.stack.length - 1;
+  updateUndoRedoButtons();
+}
+
+function flushHistory() {
+  if (historyTimer) { clearTimeout(historyTimer); historyTimer = null; pushHistory(); }
+}
+
+function scheduleHistoryPush() {
+  clearTimeout(historyTimer);
+  historyTimer = setTimeout(() => { historyTimer = null; pushHistory(); }, 350);
+}
+
+function resetHistory() {
+  clearTimeout(historyTimer); historyTimer = null;
+  historyState.stack = [];
+  historyState.index = -1;
+  pushHistory(); // baseline for the freshly loaded document
+}
+
+function applySnapshot(snap) {
+  historyState.suppressed = true;
+  if (snap.type === 'pdf') {
+    deselectAll();
+    const cur = state.pages.map(p => ({ w: p.width, h: p.height }));
+    state.items = snap.items.map(raw => {
+      const it = { ...raw };
+      const o = snap.pageDims[it.pageIndex];
+      const n = cur[it.pageIndex];
+      if (o && n && o.w && o.h) {
+        const rx = n.w / o.w, ry = n.h / o.h;
+        it.x *= rx; it.y *= ry; it.w *= rx; it.h *= ry;
+        if (typeof it.fontSize === 'number') it.fontSize *= ry;
+      }
+      return it;
+    });
+    state.nextId = snap.nextId;
+    renderAllItems();
+  } else if (snap.type === 'docx') {
+    deselectFloatingSig();
+    docEditor.innerHTML = snap.html;
+    docEditor.querySelectorAll('.sig-float').forEach(s => {
+      s.classList.remove('selected', 'dragging');
+      s.contentEditable = 'false';
+    });
+    updateDocPlaceholder();
+  }
+  markDirty(true);
+  historyState.suppressed = false;
+  updateUndoRedoButtons();
+}
+
+function undo() {
+  flushHistory();
+  if (historyState.index <= 0) return;
+  historyState.index--;
+  applySnapshot(historyState.stack[historyState.index]);
+}
+
+function redo() {
+  if (historyState.index >= historyState.stack.length - 1) return;
+  historyState.index++;
+  applySnapshot(historyState.stack[historyState.index]);
+}
+
+if (undoBtn) undoBtn.addEventListener('click', undo);
+if (redoBtn) redoBtn.addEventListener('click', redo);
+document.addEventListener('keydown', e => {
+  if (!(e.metaKey || e.ctrlKey) || e.altKey) return;
+  const k = e.key.toLowerCase();
+  if (k !== 'z' && k !== 'y') return;
+  // Let native undo handle plain form fields (placed PDF text boxes, modal inputs).
+  // The contenteditable DOCX editor is a DIV, so it routes to our history instead.
+  const tag = e.target.tagName;
+  if (tag === 'TEXTAREA' || tag === 'INPUT') return;
+  if (!state.fileType || state.isBusy) return;
+  const isRedo = k === 'y' || (k === 'z' && e.shiftKey);
+  e.preventDefault();
+  isRedo ? redo() : undo();
+});
 
 function markDirty(nextDirty = true) {
   state.isDirty = nextDirty;
-  if (nextDirty) scheduleDraftSave();
+  if (nextDirty) {
+    scheduleDraftSave();
+    if (!historyState.suppressed) scheduleHistoryPush();
+  }
   updateMeta();
 }
 
@@ -2211,6 +2415,7 @@ async function loadFile(f) {
       textBtn.disabled = true;
       eraseBtn.disabled = true;
       sigBtn.disabled = saveBtn.disabled = false;
+      textColorInput.disabled = false;
       saveBtn.innerHTML = '<span class="btn-icon">&#8615;</span> Save .docx';
       if (draft?.sigDataUrl) state.sigDataUrl = draft.sigDataUrl;
       else state.sigDataUrl = getPrefs().lastSignature || null;
@@ -2237,6 +2442,7 @@ async function loadFile(f) {
       }
       textBtn.disabled = sigBtn.disabled = saveBtn.disabled = false;
       eraseBtn.disabled = false;
+      textColorInput.disabled = false;
       saveBtn.innerHTML = '<span class="btn-icon">&#8615;</span> Save PDF';
       const hasEditableText = state.items.some(it => it.type === 'etext');
       if (draft?.fileType === 'pdf' && state.items.length) {
@@ -2249,6 +2455,7 @@ async function loadFile(f) {
       markDirty(!!(draft?.fileType === 'pdf' && state.items.length));
     }
     empty.style.display = 'none';
+    resetHistory();
     updateMeta();
   } catch (err) {
     showError('Failed to open file: ' + err.message);
@@ -2576,7 +2783,7 @@ sigBtn.onclick = () => {
 function placeItem(pageIndex, x, y) {
   if (state.mode === 'text') {
     const w = 200, h = 30;
-    addItem({ type: 'text', pageIndex, x: x - w / 2, y: y - h / 2, w, h, text: '', fontSize: +fontSize.value });
+    addItem({ type: 'text', pageIndex, x: x - w / 2, y: y - h / 2, w, h, text: '', fontSize: +fontSize.value, color: currentTextColor });
   } else if (state.mode === 'sig' && state.sigDataUrl) {
     const img = new Image();
     img.onload = () => {
@@ -2618,6 +2825,7 @@ function selectEl(el, it) {
   state.selectedEl = el;
   state.selectedItem = it;
   if (it.type === 'text' && it.fontSize) fontSize.value = it.fontSize;
+  if ((it.type === 'text' || it.type === 'etext') && it.color) textColorInput.value = it.color;
   itemActions.classList.add('show');
 }
 
@@ -2687,6 +2895,29 @@ fontSize.addEventListener('change', () => {
   }
 });
 
+const textColorInput = document.getElementById('textColor');
+let currentTextColor = '#000000';
+textColorInput.addEventListener('input', () => {
+  currentTextColor = textColorInput.value;
+  const prefs = getPrefs();
+  prefs.textColor = currentTextColor;
+  setPrefs(prefs);
+  if (state.fileType === 'docx') {
+    // Recolor the active selection in the Word editor.
+    docEditor.focus();
+    document.execCommand('foreColor', false, currentTextColor);
+    markDirty();
+    return;
+  }
+  const it = state.selectedItem;
+  if ((it?.type === 'text' || it?.type === 'etext') && state.selectedEl) {
+    it.color = currentTextColor;
+    const textarea = state.selectedEl.querySelector('textarea');
+    if (textarea) textarea.style.color = currentTextColor;
+    markDirty();
+  }
+});
+
 document.addEventListener('click', e => {
   if (!e.target.closest('.placed') && !e.target.closest('#itemActions')) {
     deselectAll();
@@ -2730,7 +2961,7 @@ function renderItem(it, options = {}) {
     const ta = document.createElement('textarea');
     ta.value = it.text || '';
     ta.style.fontSize = (it.fontSize || 14) + 'px';
-    ta.style.color = 'black';
+    ta.style.color = it.color || '#000000';
     if (it.type === 'etext') {
       el.classList.add('etext');
       ta.spellcheck = false;
@@ -2906,8 +3137,24 @@ const sigModal = document.getElementById('sigModal');
 const sigCanvas = document.getElementById('sigCanvas');
 const sctx = sigCanvas.getContext('2d');
 let drawing = false, sigHasInk = false;
-sctx.lineWidth = 2.5; sctx.lineCap = 'round'; sctx.strokeStyle = '#1a1a4f';
+let sigColor = '#1a1a4f';
+sctx.lineWidth = 2.5; sctx.lineCap = 'round'; sctx.strokeStyle = sigColor;
 
+const sigInkRow = document.getElementById('sigInkRow');
+const sigInkCustom = document.getElementById('sigInkCustom');
+function setSigColor(color) {
+  sigColor = color;
+  sctx.strokeStyle = color;
+  sigInkCustom.value = /^#[0-9a-fA-F]{6}$/.test(color) ? color : '#1a1a4f';
+  sigInkRow.querySelectorAll('.ink-swatch').forEach(b => b.classList.toggle('active', b.dataset.ink.toLowerCase() === color.toLowerCase()));
+  if (typeof renderTypePreview === 'function') renderTypePreview();
+}
+sigInkRow.querySelectorAll('.ink-swatch').forEach(b => {
+  b.addEventListener('click', () => setSigColor(b.dataset.ink));
+});
+sigInkCustom.addEventListener('input', () => setSigColor(sigInkCustom.value));
+
+let sigModalReturnFocus = null;
 function openSigModal() {
   sctx.clearRect(0, 0, sigCanvas.width, sigCanvas.height); sigHasInk = false;
   document.getElementById('typeInput').value = '';
@@ -2915,12 +3162,34 @@ function openSigModal() {
   sigUpload.value = '';
   uploadPreview.src = '';
   uploadPreview.style.display = 'none';
+  sigInkRow.style.display = activeTab === 'upload' ? 'none' : 'flex';
   if (typeof renderTypePreview === 'function') {
     typeInputEl.style.fontFamily = selectedTypeFont;
     renderTypePreview();
   }
+  sigModalReturnFocus = document.activeElement;
   sigModal.classList.add('open');
+  // Move focus into the dialog for keyboard/screen-reader users.
+  requestAnimationFrame(() => sigModal.querySelector('.tab.active')?.focus());
 }
+function closeSigModal() {
+  sigModal.classList.remove('open');
+  if (sigModalReturnFocus && typeof sigModalReturnFocus.focus === 'function') {
+    sigModalReturnFocus.focus();
+    sigModalReturnFocus = null;
+  }
+}
+
+// Keep keyboard focus inside the signature dialog while it is open.
+sigModal.addEventListener('keydown', e => {
+  if (e.key !== 'Tab' || !sigModal.classList.contains('open')) return;
+  const focusables = [...sigModal.querySelectorAll('button, input, canvas, [tabindex]:not([tabindex="-1"])')]
+    .filter(el => !el.disabled && el.offsetParent !== null);
+  if (!focusables.length) return;
+  const first = focusables[0], last = focusables[focusables.length - 1];
+  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+});
 function sigPos(e) {
   const r = sigCanvas.getBoundingClientRect();
   const t = e.touches ? e.touches[0] : e;
@@ -2937,9 +3206,9 @@ sigCanvas.addEventListener('touchstart', sigDown, { passive: false });
 sigCanvas.addEventListener('touchmove', sigMove, { passive: false });
 sigCanvas.addEventListener('touchend', sigUp);
 document.getElementById('sigClear').onclick = () => { sctx.clearRect(0, 0, sigCanvas.width, sigCanvas.height); sigHasInk = false; };
-document.getElementById('sigCancel').onclick = () => sigModal.classList.remove('open');
-sigModal.addEventListener('click', e => { if (e.target === sigModal) sigModal.classList.remove('open'); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && sigModal.classList.contains('open')) sigModal.classList.remove('open'); });
+document.getElementById('sigCancel').onclick = closeSigModal;
+sigModal.addEventListener('click', e => { if (e.target === sigModal) closeSigModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && sigModal.classList.contains('open')) closeSigModal(); });
 
 let activeTab = 'draw';
 document.querySelectorAll('.tab').forEach(t => {
@@ -2947,6 +3216,7 @@ document.querySelectorAll('.tab').forEach(t => {
     activeTab = t.dataset.tab;
     document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x === t));
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.dataset.panel === activeTab));
+    sigInkRow.style.display = activeTab === 'upload' ? 'none' : 'flex';
   };
 });
 
@@ -3010,6 +3280,7 @@ const typeFontPicker = document.getElementById('typeFontPicker');
 
 function renderTypePreview() {
   typePreviewEl.style.fontFamily = selectedTypeFont;
+  typePreviewEl.style.color = sigColor;
   typePreviewEl.textContent = typeInputEl.value.trim() || 'Your signature';
   typePreviewEl.style.opacity = typeInputEl.value.trim() ? '1' : '0.4';
 }
@@ -3034,7 +3305,7 @@ function typedToDataUrl(text) {
   c.width = Math.ceil(m.width) + 40 * scale;
   c.height = 140 * scale;
   ctx.font = font;
-  ctx.fillStyle = '#1a1a4f';
+  ctx.fillStyle = sigColor;
   ctx.textBaseline = 'middle';
   ctx.fillText(text, 20 * scale, c.height / 2);
   return c.toDataURL('image/png');
@@ -3057,7 +3328,7 @@ document.getElementById('sigOk').onclick = () => {
   const prefs = getPrefs();
   prefs.lastSignature = dataUrl;
   setPrefs(prefs);
-  sigModal.classList.remove('open');
+  closeSigModal();
   if (state.fileType === 'docx') {
     beginDocSignaturePlacement(dataUrl);
   } else {
@@ -3240,7 +3511,7 @@ saveBtn.onclick = async () => {
             y: it.pdfBaselineY || 0,
             size,
             font,
-            color: rgb(0, 0, 0),
+            color: hexToPdfRgb(it.color, rgb),
           });
         }
         continue;
@@ -3251,9 +3522,10 @@ saveBtn.onclick = async () => {
         const fontPx = it.fontSize || 14;
         const size = fontPx * sy;
         const lhPx = fontPx * 1.2;
+        const textColor = hexToPdfRgb(it.color, rgb);
         (it.text || '').split('\n').forEach((ln, i) => {
           const yTopPx = it.y + fontPx + i * lhPx;
-          page.drawText(sanitizeWinAnsi(ln), { x, y: ph - yTopPx * sy, size, font, color: rgb(0,0,0) });
+          page.drawText(sanitizeWinAnsi(ln), { x, y: ph - yTopPx * sy, size, font, color: textColor });
         });
       } else if (it.type === 'sig') {
         const imageBytes = dataUrlToUint8Array(it.dataUrl);
@@ -3356,6 +3628,10 @@ async function saveDocx() {
 
 const initialPrefs = getPrefs();
 if (initialPrefs.fontSize) fontSize.value = Math.max(6, Math.min(72, Number(initialPrefs.fontSize) || 14));
+if (/^#[0-9a-fA-F]{6}$/.test(initialPrefs.textColor || '')) {
+  currentTextColor = initialPrefs.textColor;
+  textColorInput.value = currentTextColor;
+}
 state.sigDataUrl = initialPrefs.lastSignature || null;
 updateMeta();
 </script>
