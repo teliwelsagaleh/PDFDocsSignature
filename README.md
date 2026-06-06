@@ -13,9 +13,17 @@ A polished, single-file document editor that lets you open, edit, and sign **PDF
 
 - **PDF + DOCX in one tool** — Handle both formats without switching apps.
 - **Flexible signing** — Draw, type (in cursive fonts), or upload signature images.
+- **Accurate PDF placement** — Signatures, erasures, and added text are exported using PDF page coordinates, including rotated or cropped pages.
 - **Fast intake** — Drag-and-drop or open via the toolbar.
 - **Private by default** — All processing happens client-side. No backend, no account, no upload flow.
 - **Drafts** — Work in progress is saved locally so you can come back to it.
+
+## Helpful controls
+
+- Click **Signature** once to reuse your saved signature, or double-click it to create/upload a new one.
+- Select a placed item and use arrow keys to nudge it. Hold **Shift** for larger moves or **Alt/Option** for 1px precision.
+- Press **Cmd/Ctrl+D** to duplicate a selected PDF item.
+- Press **Escape** to cancel placement mode or deselect the current item.
 
 ## Running it
 

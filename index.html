@@ -723,6 +723,7 @@
 
   .page-wrap {
     position: relative;
+    box-sizing: content-box;
     background: white;
     border-radius: 18px;
     overflow: visible;
@@ -2243,6 +2244,9 @@ function updateMeta() {
     dirtyMeta.className = 'status-badge saved';
   }
   workspaceMeta.classList.toggle('show', !!state.fileType);
+  sigBtn.title = state.sigDataUrl
+    ? 'Place saved signature. Double-click to create or upload a new signature.'
+    : 'Create a signature.';
   updateViewControls();
   updateUndoRedoButtons();
 }
@@ -2549,6 +2553,42 @@ function getScale(pageWidth) {
   return Math.max(0.5, Math.min(2.0, ideal * state.pdfZoom));
 }
 
+function normalizeRotation(degreesValue = 0) {
+  return ((Math.round(degreesValue) % 360) + 360) % 360;
+}
+
+function pagePointFromClient(page, clientX, clientY) {
+  const rect = page.overlay.getBoundingClientRect();
+  const scaleX = rect.width ? page.width / rect.width : 1;
+  const scaleY = rect.height ? page.height / rect.height : 1;
+  return {
+    x: Math.max(0, Math.min(page.width, (clientX - rect.left) * scaleX)),
+    y: Math.max(0, Math.min(page.height, (clientY - rect.top) * scaleY)),
+  };
+}
+
+function pdfPointFromViewport(page, x, y) {
+  const [px, py] = page.viewport.convertToPdfPoint(x, y);
+  return { x: px, y: py };
+}
+
+function pdfPlacementFromViewportRect(page, x, y, w, h) {
+  const bl = pdfPointFromViewport(page, x, y + h);
+  const br = pdfPointFromViewport(page, x + w, y + h);
+  const tl = pdfPointFromViewport(page, x, y);
+  return {
+    x: bl.x,
+    y: bl.y,
+    width: Math.hypot(br.x - bl.x, br.y - bl.y),
+    height: Math.hypot(tl.x - bl.x, tl.y - bl.y),
+    rotation: normalizeRotation(page.rotation),
+  };
+}
+
+function pdfSizeFromViewport(page, px) {
+  return px / (page.scale || 1);
+}
+
 async function extractEditableText(page, viewport, scale, pageIndex) {
   const out = [];
   let textContent;
@@ -2620,6 +2660,7 @@ async function renderPdf(buf, options = {}) {
     const wrap = document.createElement('div');
     wrap.className = 'page-wrap';
     wrap.style.width = viewport.width + 'px';
+    wrap.style.height = viewport.height + 'px';
     const canvas = document.createElement('canvas');
     const dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 3));
     canvas.width = Math.floor(viewport.width * dpr);
@@ -2630,6 +2671,8 @@ async function renderPdf(buf, options = {}) {
     const overlay = document.createElement('div');
     overlay.className = 'overlay';
     overlay.dataset.pageIndex = i - 1;
+    overlay.style.width = viewport.width + 'px';
+    overlay.style.height = viewport.height + 'px';
     wrap.appendChild(overlay);
 
     const label = document.createElement('div');
@@ -2646,7 +2689,15 @@ async function renderPdf(buf, options = {}) {
       viewport,
       transform: dpr === 1 ? null : [dpr, 0, 0, dpr, 0, 0],
     }).promise;
-    state.pages.push({ canvas, overlay, width: viewport.width, height: viewport.height, scale });
+    state.pages.push({
+      canvas,
+      overlay,
+      viewport,
+      width: viewport.width,
+      height: viewport.height,
+      scale,
+      rotation: normalizeRotation(viewport.rotation ?? page.rotate ?? 0),
+    });
     overlay.addEventListener('click', onOverlayClick);
     overlay.addEventListener('touchend', onOverlayTouch);
     overlay.addEventListener('mousedown', onOverlayPointerDown);
@@ -2676,9 +2727,9 @@ function onOverlayTouch(e) {
   e.preventDefault();
   const touch = e.changedTouches[0];
   const overlay = e.currentTarget;
-  const rect = overlay.getBoundingClientRect();
-  const x = touch.clientX - rect.left, y = touch.clientY - rect.top;
   const pageIndex = +overlay.dataset.pageIndex;
+  const page = state.pages[pageIndex];
+  const { x, y } = pagePointFromClient(page, touch.clientX, touch.clientY);
   placeItem(pageIndex, x, y);
 }
 
@@ -2687,13 +2738,13 @@ function onOverlayPointerDown(e) {
   if (e.target.closest('.placed')) return;
   e.preventDefault();
   const overlay = e.currentTarget;
-  const overlayRect = overlay.getBoundingClientRect();
   const isTouch = e.touches !== undefined;
   const cp0 = isTouch ? e.touches[0] : e;
-  const startX = cp0.clientX - overlayRect.left;
-  const startY = cp0.clientY - overlayRect.top;
   const pageIndex = +overlay.dataset.pageIndex;
   const page = state.pages[pageIndex];
+  const start = pagePointFromClient(page, cp0.clientX, cp0.clientY);
+  const startX = start.x;
+  const startY = start.y;
 
   const dragRect = document.createElement('div');
   dragRect.className = 'erase-drag-rect';
@@ -2714,9 +2765,9 @@ function onOverlayPointerDown(e) {
   function move(ev) {
     ev.preventDefault();
     const cp = isTouch ? ev.touches[0] : ev;
-    const r = overlay.getBoundingClientRect();
-    curX = Math.max(0, Math.min(page.width, cp.clientX - r.left));
-    curY = Math.max(0, Math.min(page.height, cp.clientY - r.top));
+    const cur = pagePointFromClient(page, cp.clientX, cp.clientY);
+    curX = cur.x;
+    curY = cur.y;
     paint();
   }
   function up() {
@@ -2766,6 +2817,10 @@ eraseBtn.onclick = () => setMode('erase');
 sigBtn.addEventListener('mousedown', () => {
   if (state.fileType === 'docx') captureDocSelection();
 });
+function activatePdfSignatureMode() {
+  if (state.mode !== 'sig') setMode('sig');
+  else showToast('Tap anywhere on the PDF to place signature');
+}
 sigBtn.onclick = () => {
   if (state.fileType === 'docx') {
     captureDocSelection();
@@ -2777,8 +2832,13 @@ sigBtn.onclick = () => {
     }
     return;
   }
-  openSigModal();
+  if (state.sigDataUrl) activatePdfSignatureMode();
+  else openSigModal();
 };
+sigBtn.addEventListener('dblclick', e => {
+  e.preventDefault();
+  if (!sigBtn.disabled) openSigModal();
+});
 
 function placeItem(pageIndex, x, y) {
   if (state.mode === 'text') {
@@ -2801,9 +2861,9 @@ function onOverlayClick(e) {
   if (!state.mode || state.mode === 'erase') return;
   if (e.target.closest('.placed')) return;
   const overlay = e.currentTarget;
-  const rect = overlay.getBoundingClientRect();
-  const x = e.clientX - rect.left, y = e.clientY - rect.top;
   const pageIndex = +overlay.dataset.pageIndex;
+  const page = state.pages[pageIndex];
+  const { x, y } = pagePointFromClient(page, e.clientX, e.clientY);
   placeItem(pageIndex, x, y);
 }
 
@@ -2843,6 +2903,16 @@ function deleteSelected() {
   state.selectedEl.remove();
   deselectAll();
   markDirty();
+}
+
+function duplicateSelected() {
+  if (!state.selectedItem || state.selectedItem.type === 'etext') return;
+  const copy = JSON.parse(JSON.stringify(state.selectedItem));
+  delete copy.id;
+  copy.x += 18;
+  copy.y += 18;
+  addItem(clampItemToPage(copy));
+  showToast('Item duplicated.', 'success');
 }
 
 document.getElementById('actDelete').addEventListener('click', deleteSelected);
@@ -2932,13 +3002,25 @@ document.addEventListener('keydown', e => {
     }
     return;
   }
+  if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && (e.key === 'd' || e.key === 'D')) {
+    if (state.selectedItem && state.selectedItem.type !== 'etext') {
+      e.preventDefault();
+      duplicateSelected();
+    }
+    return;
+  }
+  if (e.key === 'Escape') {
+    if (state.mode) setMode(null);
+    if (state.selectedItem) deselectAll();
+    return;
+  }
   if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT' || e.target.isContentEditable) return;
   if (e.key === 'Delete' || e.key === 'Backspace') {
     deleteSelected();
     return;
   }
   if (state.selectedItem) {
-    const step = e.shiftKey ? 50 : 10;
+    const step = e.altKey ? 1 : e.shiftKey ? 50 : 10;
     if (e.key === 'ArrowUp')    { e.preventDefault(); nudgeSelected(0, -step); }
     if (e.key === 'ArrowDown')  { e.preventDefault(); nudgeSelected(0, step); }
     if (e.key === 'ArrowLeft')  { e.preventDefault(); nudgeSelected(-step, 0); }
@@ -3024,9 +3106,9 @@ function renderItem(it, options = {}) {
     selectEl(el, it);
 
     const p = getPointer(e);
-    const overlayStart = page.overlay.getBoundingClientRect();
-    const gripX = p.x - overlayStart.left - it.x;
-    const gripY = p.y - overlayStart.top - it.y;
+    const startPoint = pagePointFromClient(page, p.x, p.y);
+    const gripX = startPoint.x - it.x;
+    const gripY = startPoint.y - it.y;
     const isTouch = !!e.touches;
     const moveEvt = isTouch ? 'touchmove' : 'mousemove';
     const upEvt = isTouch ? 'touchend' : 'mouseup';
@@ -3039,9 +3121,9 @@ function renderItem(it, options = {}) {
     const MAX_SPEED = isMobile ? 24 : 16;
 
     function updatePosition() {
-      const rect = page.overlay.getBoundingClientRect();
-      const newX = lastCX - rect.left - gripX;
-      const newY = lastCY - rect.top - gripY;
+      const point = pagePointFromClient(page, lastCX, lastCY);
+      const newX = point.x - gripX;
+      const newY = point.y - gripY;
       it.x = Math.max(0, Math.min(page.width - it.w, newX));
       it.y = Math.max(0, Math.min(page.height - it.h, newY));
       el.style.left = it.x + 'px';
@@ -3088,7 +3170,8 @@ function renderItem(it, options = {}) {
     e.stopPropagation();
     selectEl(el, it);
     const p = getPointer(e);
-    const sx = p.x, sy = p.y, ow = it.w, oh = it.h;
+    const startPoint = pagePointFromClient(page, p.x, p.y);
+    const sx = startPoint.x, sy = startPoint.y, ow = it.w, oh = it.h;
     const aspect = ow / oh || 1;
     const isTouch = !!e.touches;
     const moveEvt = isTouch ? 'touchmove' : 'mousemove';
@@ -3096,14 +3179,15 @@ function renderItem(it, options = {}) {
     function move(ev) {
       ev.preventDefault();
       const cp = getPointer(ev);
+      const cur = pagePointFromClient(page, cp.x, cp.y);
       if (it.type === 'sig') {
-        const delta = Math.max(cp.x - sx, (cp.y - sy) * aspect);
+        const delta = Math.max(cur.x - sx, (cur.y - sy) * aspect);
         const maxW = Math.max(30, Math.min(page.width - it.x, (page.height - it.y) * aspect));
         it.w = Math.max(30, Math.min(maxW, ow + delta));
         it.h = it.w / aspect;
       } else {
-        it.w = Math.max(30, Math.min(page.width - it.x, ow + cp.x - sx));
-        it.h = Math.max(20, Math.min(page.height - it.y, oh + cp.y - sy));
+        it.w = Math.max(30, Math.min(page.width - it.x, ow + cur.x - sx));
+        it.h = Math.max(20, Math.min(page.height - it.y, oh + cur.y - sy));
       }
       el.style.width = it.w + 'px';
       el.style.height = it.h + 'px';
@@ -3332,7 +3416,7 @@ document.getElementById('sigOk').onclick = () => {
   if (state.fileType === 'docx') {
     beginDocSignaturePlacement(dataUrl);
   } else {
-    setMode('sig');
+    activatePdfSignatureMode();
     if (state.isDirty) scheduleDraftSave();
   }
 };
@@ -3470,22 +3554,22 @@ saveBtn.onclick = async () => {
   saveBtn.disabled = true; saveBtn.textContent = 'Saving...';
   setBusy(true, 'Exporting PDF', 'Writing your edits into a downloadable PDF.');
   try {
-    const { PDFDocument, rgb, StandardFonts } = PDFLib;
+    const { PDFDocument, rgb, StandardFonts, degrees } = PDFLib;
     const doc = await PDFDocument.load(state.pdfBytes);
     const font = await doc.embedFont(StandardFonts.Helvetica);
     const pages = doc.getPages();
     for (const it of state.items) {
       const page = pages[it.pageIndex];
-      const { width: pw, height: ph } = page.getSize();
       const s = state.pages[it.pageIndex];
-      const sx = pw / s.width, sy = ph / s.height;
-      const x = it.x * sx;
+      if (!page || !s) continue;
+      const placement = pdfPlacementFromViewportRect(s, it.x, it.y, it.w, it.h);
       if (it.type === 'erase') {
         page.drawRectangle({
-          x,
-          y: ph - (it.y + it.h) * sy,
-          width: it.w * sx,
-          height: it.h * sy,
+          x: placement.x,
+          y: placement.y,
+          width: placement.width,
+          height: placement.height,
+          rotate: degrees(placement.rotation),
           color: rgb(1, 1, 1),
         });
         continue;
@@ -3520,12 +3604,20 @@ saveBtn.onclick = async () => {
         const text = (it.text || '').trim();
         if (!text) continue;
         const fontPx = it.fontSize || 14;
-        const size = fontPx * sy;
+        const size = pdfSizeFromViewport(s, fontPx);
         const lhPx = fontPx * 1.2;
         const textColor = hexToPdfRgb(it.color, rgb);
         (it.text || '').split('\n').forEach((ln, i) => {
           const yTopPx = it.y + fontPx + i * lhPx;
-          page.drawText(sanitizeWinAnsi(ln), { x, y: ph - yTopPx * sy, size, font, color: textColor });
+          const baseline = pdfPointFromViewport(s, it.x, yTopPx);
+          page.drawText(sanitizeWinAnsi(ln), {
+            x: baseline.x,
+            y: baseline.y,
+            size,
+            font,
+            color: textColor,
+            rotate: degrees(placement.rotation),
+          });
         });
       } else if (it.type === 'sig') {
         const imageBytes = dataUrlToUint8Array(it.dataUrl);
@@ -3533,8 +3625,13 @@ saveBtn.onclick = async () => {
         const img = mime === 'image/jpeg' || mime === 'image/jpg'
           ? await doc.embedJpg(imageBytes)
           : await doc.embedPng(imageBytes);
-        const w = it.w * sx, h = it.h * sy;
-        page.drawImage(img, { x, y: ph - (it.y + it.h) * sy, width: w, height: h });
+        page.drawImage(img, {
+          x: placement.x,
+          y: placement.y,
+          width: placement.width,
+          height: placement.height,
+          rotate: degrees(placement.rotation),
+        });
       }
     }
     const out = await doc.save();
