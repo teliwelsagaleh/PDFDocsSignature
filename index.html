@@ -228,6 +228,14 @@
     transform: translateY(0);
   }
 
+  button:focus-visible,
+  label.btn:focus-visible,
+  input:focus-visible,
+  #docEditor:focus-visible {
+    outline: 3px solid rgba(19, 160, 133, 0.36);
+    outline-offset: 3px;
+  }
+
   button.active {
     background: var(--accent-soft);
     color: var(--accent);
@@ -747,6 +755,59 @@
 
   .placed img { width: 100%; height: 100%; pointer-events: none; border-radius: 10px; }
 
+  .placed.etext {
+    border-radius: 3px;
+    cursor: text;
+    border-color: transparent;
+  }
+  .placed.etext textarea {
+    background: transparent;
+    color: transparent;
+    caret-color: var(--accent);
+    padding: 0;
+    border-radius: 3px;
+    line-height: 1;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    white-space: pre;
+    overflow: hidden;
+    cursor: text;
+    transition: background 0.1s;
+  }
+  .placed.etext:hover textarea {
+    background: rgba(255, 215, 64, 0.32);
+  }
+  .placed.etext.is-editing textarea,
+  .placed.etext.is-edited textarea {
+    background: white;
+    color: black;
+  }
+  .placed.etext.is-editing { border-color: var(--accent); border-style: solid; }
+  .placed.etext .del,
+  .placed.etext .resize { display: none !important; }
+  body.show-edit-hints .placed.etext textarea {
+    background: rgba(255, 215, 64, 0.18);
+  }
+
+  .placed.erase {
+    background: white;
+    border: 1.5px dashed rgba(220, 38, 38, 0.55);
+    cursor: move;
+    border-radius: 0;
+  }
+  .placed.erase:hover { border-color: var(--danger); }
+  .placed.erase.selected {
+    border-color: var(--danger);
+    border-style: solid;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.18);
+  }
+  .erase-drag-rect {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1.5px dashed var(--danger);
+    pointer-events: none;
+    z-index: 4;
+  }
+
   .resize {
     position: absolute;
     bottom: -8px;
@@ -1083,58 +1144,81 @@
     font-family: Georgia, "Times New Roman", serif;
     line-height: 1.7;
     border-radius: 24px;
+    position: relative;
   }
 
   #docEditor:focus { outline: 2px solid rgba(15, 118, 110, 0.24); outline-offset: -2px; }
+  #docEditor.placing-signature {
+    cursor: copy;
+    outline: 3px solid rgba(19, 160, 133, 0.28);
+    outline-offset: 6px;
+  }
   #docEditor.is-empty::before {
     content: attr(data-placeholder);
     color: var(--text-tertiary);
     pointer-events: none;
     font-style: italic;
   }
-  #docEditor img.sig-inline {
-    vertical-align: middle;
-    max-width: 260px;
+  /* Free-floating, draggable signatures inside the DOCX editor */
+  .sig-float {
+    position: absolute;
     cursor: grab;
     border: 1.5px dashed transparent;
     border-radius: 6px;
+    box-sizing: border-box;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+    z-index: 6;
   }
-  #docEditor img.sig-inline:hover { border-color: var(--accent); }
-  #docEditor img.sig-inline.selected { border-color: var(--accent); border-style: solid; }
+  .sig-float img {
+    display: block;
+    width: 100%;
+    height: auto;
+    pointer-events: none;
+    -webkit-user-drag: none;
+    user-drag: none;
+  }
+  .sig-float:hover { border-color: var(--accent); }
+  .sig-float.selected { border-style: solid; border-color: var(--accent); }
+  .sig-float.dragging { cursor: grabbing; opacity: 0.92; }
+  .sig-float .sig-resize {
+    position: absolute;
+    right: -8px;
+    bottom: -8px;
+    width: 16px;
+    height: 16px;
+    background: var(--accent);
+    border: 2px solid #fff;
+    border-radius: 50%;
+    cursor: nwse-resize;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+    display: none;
+  }
+  .sig-float .sig-del {
+    position: absolute;
+    right: -11px;
+    top: -11px;
+    width: 22px;
+    height: 22px;
+    line-height: 18px;
+    text-align: center;
+    background: var(--danger);
+    color: #fff;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 14px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+    display: none;
+  }
+  .sig-float:hover .sig-resize,
+  .sig-float:hover .sig-del,
+  .sig-float.selected .sig-resize,
+  .sig-float.selected .sig-del { display: block; }
   #docEditor h1, #docEditor h2, #docEditor h3 { color: #222; }
   #docEditor table { border-collapse: collapse; width: 100%; }
   #docEditor td, #docEditor th { border: 1px solid #bbb; padding: 6px 10px; }
-
-  #sigToolbar {
-    position: absolute;
-    background: rgba(255, 253, 249, 0.96);
-    border: 1px solid rgba(255,255,255,0.76);
-    border-radius: 18px;
-    padding: 6px;
-    display: none;
-    gap: 4px;
-    z-index: 60;
-    box-shadow: var(--shadow-md);
-    flex-wrap: wrap;
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-  }
-
-  #sigToolbar.show { display: flex; }
-
-  #sigToolbar button {
-    padding: 8px 10px;
-    font-size: 12px;
-    background: transparent;
-    border: none;
-    min-height: 32px;
-    border-radius: 999px;
-    box-shadow: none;
-  }
-
-  #sigToolbar button:hover { background: var(--accent-soft); color: var(--accent); }
-  #sigToolbar button.danger { color: var(--danger); }
-  #sigToolbar button.danger:hover { background: var(--danger-soft); color: var(--danger); }
 
   #toast {
     position: fixed;
@@ -1156,6 +1240,8 @@
   }
 
   #toast.show { display: block; animation: toastIn 0.28s ease; }
+  #toast.error { background: rgba(127, 29, 29, 0.94); }
+  #toast.success { background: rgba(20, 83, 45, 0.94); }
 
   @keyframes toastIn {
     from { opacity: 0; transform: translateX(-50%) translateY(-8px); }
@@ -1217,6 +1303,34 @@
     pointer-events: none;
     z-index: 999;
     background: rgba(15, 118, 110, 0.06);
+  }
+
+  .drop-active::before {
+    content: "Drop your PDF or DOCX to open it";
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+    padding: 16px 22px;
+    border-radius: 999px;
+    color: #fff;
+    background: rgba(14, 111, 92, 0.94);
+    box-shadow: var(--shadow-lg);
+    font-size: 14px;
+    font-weight: 800;
+    pointer-events: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      scroll-behavior: auto !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 
   header input[type=file], .btn input[type=file] { display: none; }
@@ -1397,10 +1511,6 @@
       padding: 24px 12px;
     }
 
-    #sigToolbar {
-      max-width: 92vw;
-    }
-
     .placed .del {
       width: 30px;
       height: 30px;
@@ -1460,6 +1570,7 @@
     <div class="toolbar-divider"></div>
     <button id="textBtn" disabled>Text</button>
     <button id="sigBtn" disabled>Signature</button>
+    <button id="eraseBtn" disabled title="Drag to whiteout any region">Erase</button>
     <div class="toolbar-divider"></div>
     <div class="size-group">
       <span>Size</span>
@@ -1491,17 +1602,6 @@
   <button id="actDeselect">Done</button>
 </div>
 
-<div id="sigToolbar">
-  <button data-act="smaller" title="Smaller">&minus;</button>
-  <button data-act="bigger" title="Bigger">+</button>
-  <button data-act="up" title="Move up">&uarr;</button>
-  <button data-act="down" title="Move down">&darr;</button>
-  <button data-act="newline" title="Own line">&crarr;</button>
-  <button data-act="align-left" title="Align left">L</button>
-  <button data-act="align-center" title="Center">C</button>
-  <button data-act="align-right" title="Align right">R</button>
-  <button data-act="remove" class="danger" title="Delete">&times;</button>
-</div>
 
 <main id="shell">
   <section id="workspaceMeta" aria-live="polite">
@@ -1631,7 +1731,7 @@
       </li>
       <li>
         <strong>Add text or signatures</strong>
-        <span>Use the toolbar to place text boxes or signatures. On PDFs, tap anywhere on a page to drop them in.</span>
+        <span>Use the toolbar, then tap where you want it. Drag any signature to reposition it freely, drag its corner to resize, and use the × to remove it — on PDFs and Word documents alike.</span>
       </li>
       <li>
         <strong>Create your signature</strong>
@@ -1674,6 +1774,7 @@ const PREFS_KEY = 'paperforge:prefs';
 const fileInput = document.getElementById('file');
 const textBtn = document.getElementById('textBtn');
 const sigBtn = document.getElementById('sigBtn');
+const eraseBtn = document.getElementById('eraseBtn');
 const saveBtn = document.getElementById('saveBtn');
 const fontSize = document.getElementById('fontSize');
 const pdfViewControls = document.getElementById('pdfViewControls');
@@ -1710,6 +1811,116 @@ function refreshDocFmtState() {
   });
 }
 
+let savedDocRange = null;
+let pendingDocSignatureDataUrl = null;
+
+function isInsideDocEditor(node) {
+  return !!node && (node === docEditor || docEditor.contains(node));
+}
+
+function captureDocSelection() {
+  if (state.fileType !== 'docx') return;
+  const sel = window.getSelection();
+  if (!sel.rangeCount || !isInsideDocEditor(sel.anchorNode) || !isInsideDocEditor(sel.focusNode)) return;
+  savedDocRange = sel.getRangeAt(0).cloneRange();
+}
+
+function restoreDocSelection(range = savedDocRange) {
+  docEditor.focus();
+  if (!range || !isInsideDocEditor(range.commonAncestorContainer)) return null;
+  const restored = range.cloneRange();
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(restored);
+  return restored;
+}
+
+const DOC_SIG_DEFAULT_W = 220;
+
+// Build a free-floating, draggable signature element for the DOCX editor.
+function createFloatingSig(dataUrl, x, y, w) {
+  const wrap = document.createElement('div');
+  wrap.className = 'sig-float';
+  wrap.contentEditable = 'false';
+  wrap.style.left = Math.round(x) + 'px';
+  wrap.style.top = Math.round(y) + 'px';
+  wrap.style.width = Math.round(w || DOC_SIG_DEFAULT_W) + 'px';
+
+  const img = document.createElement('img');
+  img.src = dataUrl;
+  img.draggable = false;
+  img.alt = 'Signature';
+  wrap.appendChild(img);
+
+  const resize = document.createElement('div');
+  resize.className = 'sig-resize';
+  wrap.appendChild(resize);
+
+  const del = document.createElement('div');
+  del.className = 'sig-del';
+  del.textContent = '×';
+  wrap.appendChild(del);
+
+  return wrap;
+}
+
+// Keep a floating signature inside the editor bounds.
+function clampSigToEditor(wrap) {
+  const maxX = Math.max(0, docEditor.clientWidth - wrap.offsetWidth);
+  const maxY = Math.max(0, docEditor.scrollHeight - wrap.offsetHeight);
+  const x = Math.max(0, Math.min(maxX, parseFloat(wrap.style.left) || 0));
+  const y = Math.max(0, Math.min(maxY, parseFloat(wrap.style.top) || 0));
+  wrap.style.left = x + 'px';
+  wrap.style.top = y + 'px';
+}
+
+// Drop a signature centered on the given viewport coordinates.
+function placeDocSignatureAt(dataUrl, clientX, clientY) {
+  const rect = docEditor.getBoundingClientRect();
+  const localX = clientX - rect.left;
+  const localY = clientY - rect.top;
+  const wrap = createFloatingSig(dataUrl, localX - DOC_SIG_DEFAULT_W / 2, localY - 30, DOC_SIG_DEFAULT_W);
+  docEditor.appendChild(wrap);
+  clampSigToEditor(wrap);
+
+  const center = () => {
+    wrap.style.left = (localX - wrap.offsetWidth / 2) + 'px';
+    wrap.style.top = (localY - wrap.offsetHeight / 2) + 'px';
+    clampSigToEditor(wrap);
+  };
+  const img = wrap.querySelector('img');
+  if (img.complete && img.naturalHeight) center();
+  else img.addEventListener('load', center, { once: true });
+
+  updateDocPlaceholder();
+  selectFloatingSig(wrap);
+  markDirty();
+  showToast('Signature placed. Drag it anywhere; drag the corner to resize.', 'success');
+  return wrap;
+}
+
+// Drop a signature in the visible middle of the editor (no click target).
+function insertDocSignature(dataUrl) {
+  const rect = docEditor.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = Math.min(rect.bottom, Math.max(rect.top, window.innerHeight / 2));
+  return placeDocSignatureAt(dataUrl, cx, cy);
+}
+
+function endDocSignaturePlacement() {
+  pendingDocSignatureDataUrl = null;
+  docEditor.classList.remove('placing-signature');
+  sigBtn.classList.remove('active');
+}
+
+function beginDocSignaturePlacement(dataUrl) {
+  pendingDocSignatureDataUrl = dataUrl;
+  docEditor.classList.add('placing-signature');
+  sigBtn.classList.add('active');
+  docEditor.focus();
+  showToast('Click where you want the signature.');
+}
+
 docFmtBar.addEventListener('mousedown', e => {
   if (e.target.closest('button')) e.preventDefault();
 });
@@ -1726,7 +1937,10 @@ docFmtBar.addEventListener('click', e => {
   markDirty();
   updateDocPlaceholder();
 });
-document.addEventListener('selectionchange', refreshDocFmtState);
+document.addEventListener('selectionchange', () => {
+  refreshDocFmtState();
+  captureDocSelection();
+});
 
 function getPrefs() {
   try {
@@ -1777,6 +1991,43 @@ function dataUrlToUint8Array(dataUrl) {
   const out = new Uint8Array(raw.length);
   for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
   return out;
+}
+
+function getDataUrlMime(dataUrl) {
+  const match = dataUrl.match(/^data:([^;,]+)?[;,]/);
+  return (match?.[1] || '').toLowerCase();
+}
+
+const WIN_ANSI_REPLACEMENTS = {
+  '‘': "'", '’': "'", '‚': "'", '‛': "'",
+  '“': '"', '”': '"', '„': '"', '‟': '"',
+  '–': '-', '—': '-', '−': '-', '―': '-',
+  '…': '...',
+  ' ': ' ', ' ': ' ', ' ': ' ', ' ': ' ',
+  '•': '*', '·': '.',
+  'ﬁ': 'fi', 'ﬂ': 'fl', 'ﬀ': 'ff', 'ﬃ': 'ffi', 'ﬄ': 'ffl',
+  '­': '',
+};
+function sanitizeWinAnsi(s) {
+  if (!s) return s;
+  let out = '';
+  for (const ch of s) {
+    if (WIN_ANSI_REPLACEMENTS[ch] !== undefined) out += WIN_ANSI_REPLACEMENTS[ch];
+    else if (ch.charCodeAt(0) > 0xFF) out += '?';
+    else out += ch;
+  }
+  return out;
+}
+
+function isSupportedDocument(file) {
+  return /\.pdf$/i.test(file.name) ||
+    /\.docx$/i.test(file.name) ||
+    file.type === 'application/pdf' ||
+    file.type.includes('wordprocessingml');
+}
+
+function showError(message) {
+  showToast(message, 'error');
 }
 
 function triggerDownload(blob, filename) {
@@ -1837,6 +2088,11 @@ function saveDraftNow() {
         text: it.text || '',
         fontSize: it.fontSize || null,
         dataUrl: it.dataUrl || null,
+        original: it.original ?? null,
+        pdfX: it.pdfX ?? null,
+        pdfBaselineY: it.pdfBaselineY ?? null,
+        pdfWidth: it.pdfWidth ?? null,
+        pdfFontSize: it.pdfFontSize ?? null,
       }));
     } else if (state.fileType === 'docx') {
       payload.docHtml = docEditor.innerHTML;
@@ -1871,6 +2127,9 @@ function rescaleItem(item, oldPage, newPage) {
   nextItem.y *= yRatio;
   nextItem.w *= xRatio;
   nextItem.h *= yRatio;
+  if (item.type === 'etext' && typeof item.fontSize === 'number') {
+    nextItem.fontSize = item.fontSize * yRatio;
+  }
   return clampItemToPage(nextItem);
 }
 
@@ -1914,6 +2173,10 @@ function markDirty(nextDirty = true) {
 
 async function loadFile(f) {
   if (!f) return;
+  if (!isSupportedDocument(f)) {
+    showError('Please choose a PDF or DOCX file.');
+    return;
+  }
   setBusy(true, 'Opening file', 'Loading the document and preparing the editor.');
   try {
     state.fileName = f.name.replace(/\.(pdf|docx)$/i, '');
@@ -1922,7 +2185,9 @@ async function loadFile(f) {
     const draft = readDraft(state.currentFileKey);
     const buf = await f.arrayBuffer();
     deselectAll();
-    selectSig(null);
+    deselectFloatingSig();
+    endDocSignaturePlacement();
+    savedDocRange = null;
     state.items = [];
     state.nextId = 1;
     state.mode = null;
@@ -1934,10 +2199,17 @@ async function loadFile(f) {
       pagesDiv.style.display = 'none';
       const result = await mammoth.convertToHtml({ arrayBuffer: buf });
       docEditor.innerHTML = draft?.fileType === 'docx' && draft.docHtml ? draft.docHtml : (result.value || '');
+      // Restored signatures keep their geometry but must drop transient state.
+      docEditor.querySelectorAll('.sig-float').forEach(s => {
+        s.classList.remove('selected', 'dragging');
+        s.contentEditable = 'false';
+      });
+      selectedSig = null;
       docEditor.style.display = 'block';
       updateDocPlaceholder();
       docFmtBar.classList.add('show');
       textBtn.disabled = true;
+      eraseBtn.disabled = true;
       sigBtn.disabled = saveBtn.disabled = false;
       saveBtn.innerHTML = '<span class="btn-icon">&#8615;</span> Save .docx';
       if (draft?.sigDataUrl) state.sigDataUrl = draft.sigDataUrl;
@@ -1952,7 +2224,10 @@ async function loadFile(f) {
       pagesDiv.style.display = 'flex';
       await renderPdf(buf);
       if (draft?.fileType === 'pdf') {
-        state.items = Array.isArray(draft.items) ? draft.items.map(clampItemToPage) : [];
+        const freshlyExtracted = state.items.filter(it => it.type === 'etext');
+        const draftItems = Array.isArray(draft.items) ? draft.items.map(clampItemToPage) : [];
+        const draftHasEtext = draftItems.some(it => it.type === 'etext');
+        state.items = draftHasEtext ? draftItems : [...freshlyExtracted, ...draftItems];
         state.nextId = (state.items.reduce((max, item) => Math.max(max, item.id || 0), 0) || 0) + 1;
         renderAllItems();
         if (draft.sigDataUrl) state.sigDataUrl = draft.sigDataUrl;
@@ -1961,14 +2236,23 @@ async function loadFile(f) {
         state.sigDataUrl = getPrefs().lastSignature || null;
       }
       textBtn.disabled = sigBtn.disabled = saveBtn.disabled = false;
+      eraseBtn.disabled = false;
       saveBtn.innerHTML = '<span class="btn-icon">&#8615;</span> Save PDF';
-      showToast(draft?.fileType === 'pdf' && state.items.length ? 'Draft restored.' : 'PDF loaded. Add text or a signature.');
+      const hasEditableText = state.items.some(it => it.type === 'etext');
+      if (draft?.fileType === 'pdf' && state.items.length) {
+        showToast('Draft restored.');
+      } else if (hasEditableText) {
+        showToast('PDF loaded. Click any text to edit it. Use Erase to whiteout regions.');
+      } else {
+        showToast('No text layer found - looks like a scanned PDF. Use Erase to whiteout regions, or add new text on top.');
+      }
       markDirty(!!(draft?.fileType === 'pdf' && state.items.length));
     }
     empty.style.display = 'none';
     updateMeta();
   } catch (err) {
-    alert('Failed to open file: ' + err.message);
+    showError('Failed to open file: ' + err.message);
+    console.error(err);
   } finally {
     setBusy(false);
     fileInput.value = '';
@@ -2018,6 +2302,10 @@ howItWorksModal.addEventListener('click', e => {
 });
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && howItWorksModal.classList.contains('open')) howItWorksModal.classList.remove('open');
+  if (e.key === 'Escape' && pendingDocSignatureDataUrl) {
+    endDocSignaturePlacement();
+    hideToast();
+  }
 });
 
 ['dragenter', 'dragover'].forEach(evt => {
@@ -2031,9 +2319,7 @@ document.addEventListener('keydown', e => {
     e.preventDefault();
     if (evt === 'drop') {
       document.body.classList.remove('drop-active');
-      const dropped = [...(e.dataTransfer?.files || [])].find(file =>
-        /\.pdf$/i.test(file.name) || /\.docx$/i.test(file.name) || file.type === 'application/pdf'
-      );
+      const dropped = [...(e.dataTransfer?.files || [])].find(isSupportedDocument);
       if (dropped) loadFile(dropped);
       else showToast('Drop a PDF or DOCX file to open it.');
       return;
@@ -2056,6 +2342,53 @@ function getScale(pageWidth) {
   return Math.max(0.5, Math.min(2.0, ideal * state.pdfZoom));
 }
 
+async function extractEditableText(page, viewport, scale, pageIndex) {
+  const out = [];
+  let textContent;
+  try {
+    textContent = await page.getTextContent();
+  } catch (err) {
+    console.warn('getTextContent failed for page', pageIndex + 1, err);
+    return out;
+  }
+  for (const item of textContent.items) {
+    const str = item.str || '';
+    if (!str || !str.replace(/\s+/g, '').length) continue;
+    const t = item.transform;
+    if (!t || t.length < 6) continue;
+    if (Math.abs(t[1]) > 0.01 || Math.abs(t[2]) > 0.01) continue; // skip rotated/skewed text
+    const pdfFontSize = Math.hypot(t[2], t[3]) || Math.abs(t[3]) || Math.abs(t[0]);
+    if (!(pdfFontSize > 0)) continue;
+    const pdfBaselineX = t[4];
+    const pdfBaselineY = t[5];
+    const pdfWidth = item.width && item.width > 0 ? item.width : (str.length * pdfFontSize * 0.5);
+
+    const [vx, vy] = viewport.convertToViewportPoint(pdfBaselineX, pdfBaselineY);
+    const heightPx = pdfFontSize * scale;
+    const widthPx = Math.max(8, pdfWidth * scale);
+    const padX = Math.max(6, heightPx * 0.4);
+    const padTop = heightPx * 0.18;
+    const padBottom = heightPx * 0.32;
+
+    out.push({
+      type: 'etext',
+      pageIndex,
+      x: Math.max(0, vx - 1),
+      y: Math.max(0, vy - heightPx - padTop),
+      w: widthPx + padX,
+      h: heightPx + padTop + padBottom,
+      text: str,
+      original: str,
+      fontSize: heightPx,
+      pdfX: pdfBaselineX,
+      pdfBaselineY: pdfBaselineY,
+      pdfWidth: pdfWidth,
+      pdfFontSize: pdfFontSize,
+    });
+  }
+  return out;
+}
+
 async function renderPdf(buf, options = {}) {
   const previousPages = options.preserveItems ? state.pages.map(page => ({
     width: page.width,
@@ -2070,6 +2403,7 @@ async function renderPdf(buf, options = {}) {
   state.pdfRef = pdf;
   state.pdfDoc = pdf;
   const numPages = pdf.numPages;
+  const freshEtext = [];
   for (let i = 1; i <= numPages; i++) {
     const page = await pdf.getPage(i);
     const baseViewport = page.getViewport({ scale: 1 });
@@ -2080,8 +2414,9 @@ async function renderPdf(buf, options = {}) {
     wrap.className = 'page-wrap';
     wrap.style.width = viewport.width + 'px';
     const canvas = document.createElement('canvas');
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
+    const dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 3));
+    canvas.width = Math.floor(viewport.width * dpr);
+    canvas.height = Math.floor(viewport.height * dpr);
     canvas.style.width = viewport.width + 'px';
     canvas.style.height = viewport.height + 'px';
     wrap.appendChild(canvas);
@@ -2099,20 +2434,37 @@ async function renderPdf(buf, options = {}) {
     container.appendChild(label);
     pagesDiv.appendChild(container);
 
-    await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+    await page.render({
+      canvasContext: canvas.getContext('2d'),
+      viewport,
+      transform: dpr === 1 ? null : [dpr, 0, 0, dpr, 0, 0],
+    }).promise;
     state.pages.push({ canvas, overlay, width: viewport.width, height: viewport.height, scale });
     overlay.addEventListener('click', onOverlayClick);
     overlay.addEventListener('touchend', onOverlayTouch);
+    overlay.addEventListener('mousedown', onOverlayPointerDown);
+    overlay.addEventListener('touchstart', onOverlayPointerDown, { passive: false });
+
+    if (!options.preserveItems) {
+      const items = await extractEditableText(page, viewport, scale, i - 1);
+      for (const it of items) {
+        it.id = state.nextId++;
+        freshEtext.push(it);
+      }
+    }
   }
   if (options.preserveItems && previousItems.length) {
     state.items = previousItems.map(item => rescaleItem(item, previousPages[item.pageIndex], state.pages[item.pageIndex]));
+    renderAllItems();
+  } else if (freshEtext.length) {
+    state.items.push(...freshEtext);
     renderAllItems();
   }
   updateViewControls();
 }
 
 function onOverlayTouch(e) {
-  if (!state.mode) return;
+  if (!state.mode || state.mode === 'erase') return;
   if (e.target.closest('.placed')) return;
   e.preventDefault();
   const touch = e.changedTouches[0];
@@ -2123,26 +2475,103 @@ function onOverlayTouch(e) {
   placeItem(pageIndex, x, y);
 }
 
+function onOverlayPointerDown(e) {
+  if (state.mode !== 'erase') return;
+  if (e.target.closest('.placed')) return;
+  e.preventDefault();
+  const overlay = e.currentTarget;
+  const overlayRect = overlay.getBoundingClientRect();
+  const isTouch = e.touches !== undefined;
+  const cp0 = isTouch ? e.touches[0] : e;
+  const startX = cp0.clientX - overlayRect.left;
+  const startY = cp0.clientY - overlayRect.top;
+  const pageIndex = +overlay.dataset.pageIndex;
+  const page = state.pages[pageIndex];
+
+  const dragRect = document.createElement('div');
+  dragRect.className = 'erase-drag-rect';
+  overlay.appendChild(dragRect);
+  let curX = startX, curY = startY;
+  function paint() {
+    const x = Math.min(startX, curX), y = Math.min(startY, curY);
+    const w = Math.abs(curX - startX), h = Math.abs(curY - startY);
+    dragRect.style.left = x + 'px';
+    dragRect.style.top = y + 'px';
+    dragRect.style.width = w + 'px';
+    dragRect.style.height = h + 'px';
+  }
+  paint();
+
+  const moveEvt = isTouch ? 'touchmove' : 'mousemove';
+  const upEvt = isTouch ? 'touchend' : 'mouseup';
+  function move(ev) {
+    ev.preventDefault();
+    const cp = isTouch ? ev.touches[0] : ev;
+    const r = overlay.getBoundingClientRect();
+    curX = Math.max(0, Math.min(page.width, cp.clientX - r.left));
+    curY = Math.max(0, Math.min(page.height, cp.clientY - r.top));
+    paint();
+  }
+  function up() {
+    document.removeEventListener(moveEvt, move);
+    document.removeEventListener(upEvt, up);
+    dragRect.remove();
+    const x = Math.min(startX, curX), y = Math.min(startY, curY);
+    const w = Math.abs(curX - startX), h = Math.abs(curY - startY);
+    if (w >= 6 && h >= 6) {
+      addItem({ type: 'erase', pageIndex, x, y, w, h });
+    }
+    setMode(null);
+  }
+  document.addEventListener(moveEvt, move, { passive: false });
+  document.addEventListener(upEvt, up);
+}
+
 const toast = document.getElementById('toast');
 let toastTimer;
-function showToast(msg) {
-  toast.textContent = msg; toast.classList.add('show');
+function showToast(msg, type = '') {
+  toast.textContent = msg;
+  toast.className = type;
+  toast.classList.add('show');
   clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove('show'), 3500);
 }
-function hideToast() { toast.classList.remove('show'); }
+function hideToast() { toast.classList.remove('show', 'error', 'success'); }
 
 function setMode(m) {
   state.mode = state.mode === m ? null : m;
   textBtn.classList.toggle('active', state.mode === 'text');
   sigBtn.classList.toggle('active', state.mode === 'sig');
-  document.querySelectorAll('.overlay').forEach(o => o.style.cursor = state.mode ? 'crosshair' : 'default');
+  eraseBtn.classList.toggle('active', state.mode === 'erase');
+  document.body.classList.toggle('show-edit-hints', state.mode === 'erase');
+  document.querySelectorAll('.overlay').forEach(o => {
+    if (state.mode === 'erase') o.style.cursor = 'crosshair';
+    else if (state.mode) o.style.cursor = 'crosshair';
+    else o.style.cursor = 'default';
+  });
   updateMeta();
   if (state.mode === 'text') showToast('Tap anywhere on the PDF to add text');
   else if (state.mode === 'sig') showToast('Tap anywhere on the PDF to place signature');
+  else if (state.mode === 'erase') showToast('Drag on the PDF to whiteout a region.');
   else hideToast();
 }
 textBtn.onclick = () => setMode('text');
-sigBtn.onclick = () => openSigModal();
+eraseBtn.onclick = () => setMode('erase');
+sigBtn.addEventListener('mousedown', () => {
+  if (state.fileType === 'docx') captureDocSelection();
+});
+sigBtn.onclick = () => {
+  if (state.fileType === 'docx') {
+    captureDocSelection();
+    if (state.sigDataUrl) {
+      if (pendingDocSignatureDataUrl) endDocSignaturePlacement();
+      else beginDocSignaturePlacement(state.sigDataUrl);
+    } else {
+      openSigModal();
+    }
+    return;
+  }
+  openSigModal();
+};
 
 function placeItem(pageIndex, x, y) {
   if (state.mode === 'text') {
@@ -2162,7 +2591,7 @@ function placeItem(pageIndex, x, y) {
 }
 
 function onOverlayClick(e) {
-  if (!state.mode) return;
+  if (!state.mode || state.mode === 'erase') return;
   if (e.target.closest('.placed')) return;
   const overlay = e.currentTarget;
   const rect = overlay.getBoundingClientRect();
@@ -2180,9 +2609,15 @@ function addItem(it) {
 
 function selectEl(el, it) {
   deselectAll();
+  if (it.type === 'etext') {
+    state.selectedEl = el;
+    state.selectedItem = it;
+    return;
+  }
   el.classList.add('selected');
   state.selectedEl = el;
   state.selectedItem = it;
+  if (it.type === 'text' && it.fontSize) fontSize.value = it.fontSize;
   itemActions.classList.add('show');
 }
 
@@ -2244,6 +2679,12 @@ fontSize.addEventListener('change', () => {
   const prefs = getPrefs();
   prefs.fontSize = value;
   setPrefs(prefs);
+  if (state.selectedItem?.type === 'text' && state.selectedEl) {
+    state.selectedItem.fontSize = value;
+    const textarea = state.selectedEl.querySelector('textarea');
+    if (textarea) textarea.style.fontSize = value + 'px';
+    markDirty();
+  }
 });
 
 document.addEventListener('click', e => {
@@ -2285,13 +2726,28 @@ function renderItem(it, options = {}) {
   el.style.width = it.w + 'px';
   el.style.height = it.h + 'px';
 
-  if (it.type === 'text') {
+  if (it.type === 'text' || it.type === 'etext') {
     const ta = document.createElement('textarea');
     ta.value = it.text || '';
     ta.style.fontSize = (it.fontSize || 14) + 'px';
     ta.style.color = 'black';
-    ta.placeholder = 'Type here...';
-    ta.addEventListener('input', () => { it.text = ta.value; markDirty(); });
+    if (it.type === 'etext') {
+      el.classList.add('etext');
+      ta.spellcheck = false;
+      ta.rows = 1;
+      ta.addEventListener('focus', () => el.classList.add('is-editing'));
+      ta.addEventListener('blur', () => el.classList.remove('is-editing'));
+      if ((it.text || '') !== (it.original || '')) el.classList.add('is-edited');
+    } else {
+      ta.placeholder = 'Type here...';
+    }
+    ta.addEventListener('input', () => {
+      it.text = ta.value;
+      if (it.type === 'etext') {
+        el.classList.toggle('is-edited', (it.text || '') !== (it.original || ''));
+      }
+      markDirty();
+    });
     ta.addEventListener('mousedown', e => e.stopPropagation());
     ta.addEventListener('touchstart', e => e.stopPropagation());
     el.appendChild(ta);
@@ -2300,6 +2756,8 @@ function renderItem(it, options = {}) {
     img.src = it.dataUrl;
     img.draggable = false;
     el.appendChild(img);
+  } else if (it.type === 'erase') {
+    el.classList.add('erase');
   }
 
   const del = document.createElement('div');
@@ -2329,6 +2787,7 @@ function renderItem(it, options = {}) {
   function startDrag(e) {
     if (e.target.closest('.del') || e.target.closest('.resize')) return;
     if (e.target.tagName === 'TEXTAREA') return;
+    if (it.type === 'etext') return;
     e.preventDefault();
     e.stopPropagation();
     selectEl(el, it);
@@ -2396,16 +2855,25 @@ function renderItem(it, options = {}) {
   function startResize(e) {
     e.preventDefault();
     e.stopPropagation();
+    selectEl(el, it);
     const p = getPointer(e);
     const sx = p.x, sy = p.y, ow = it.w, oh = it.h;
+    const aspect = ow / oh || 1;
     const isTouch = !!e.touches;
     const moveEvt = isTouch ? 'touchmove' : 'mousemove';
     const upEvt = isTouch ? 'touchend' : 'mouseup';
     function move(ev) {
       ev.preventDefault();
       const cp = getPointer(ev);
-      it.w = Math.max(30, ow + cp.x - sx);
-      it.h = Math.max(20, oh + cp.y - sy);
+      if (it.type === 'sig') {
+        const delta = Math.max(cp.x - sx, (cp.y - sy) * aspect);
+        const maxW = Math.max(30, Math.min(page.width - it.x, (page.height - it.y) * aspect));
+        it.w = Math.max(30, Math.min(maxW, ow + delta));
+        it.h = it.w / aspect;
+      } else {
+        it.w = Math.max(30, Math.min(page.width - it.x, ow + cp.x - sx));
+        it.h = Math.max(20, Math.min(page.height - it.y, oh + cp.y - sy));
+      }
       el.style.width = it.w + 'px';
       el.style.height = it.h + 'px';
     }
@@ -2485,11 +2953,54 @@ document.querySelectorAll('.tab').forEach(t => {
 const sigUpload = document.getElementById('sigUpload');
 const uploadPreview = document.getElementById('uploadPreview');
 let uploadedDataUrl = null;
+
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('Could not read that image.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+function imageDataUrlToPng(dataUrl) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = img.naturalWidth || img.width;
+      c.height = img.naturalHeight || img.height;
+      const ctx = c.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      resolve(c.toDataURL('image/png'));
+    };
+    img.onerror = () => reject(new Error('That image could not be loaded.'));
+    img.src = dataUrl;
+  });
+}
+
+async function normalizeSignatureUpload(file) {
+  if (!file.type.startsWith('image/')) throw new Error('Please choose an image file.');
+  const dataUrl = await fileToDataUrl(file);
+  const mime = getDataUrlMime(dataUrl);
+  if (mime === 'image/png' || mime === 'image/jpeg' || mime === 'image/jpg') return dataUrl;
+  return imageDataUrlToPng(dataUrl);
+}
+
 sigUpload.addEventListener('change', e => {
   const f = e.target.files[0]; if (!f) return;
-  const reader = new FileReader();
-  reader.onload = () => { uploadedDataUrl = reader.result; uploadPreview.src = uploadedDataUrl; uploadPreview.style.display = 'block'; };
-  reader.readAsDataURL(f);
+  normalizeSignatureUpload(f)
+    .then(dataUrl => {
+      uploadedDataUrl = dataUrl;
+      uploadPreview.src = uploadedDataUrl;
+      uploadPreview.style.display = 'block';
+    })
+    .catch(err => {
+      uploadedDataUrl = null;
+      uploadPreview.src = '';
+      uploadPreview.style.display = 'none';
+      showError(err.message);
+    });
 });
 
 let selectedTypeFont = '"Dancing Script", "Brush Script MT", cursive';
@@ -2532,14 +3043,14 @@ function typedToDataUrl(text) {
 document.getElementById('sigOk').onclick = () => {
   let dataUrl = null;
   if (activeTab === 'draw') {
-    if (!sigHasInk) { alert('Please draw your signature first.'); return; }
+    if (!sigHasInk) { showError('Please draw your signature first.'); return; }
     dataUrl = trimCanvas(sigCanvas).toDataURL('image/png');
   } else if (activeTab === 'type') {
     const v = document.getElementById('typeInput').value.trim();
-    if (!v) { alert('Please type your name.'); return; }
+    if (!v) { showError('Please type your name.'); return; }
     dataUrl = typedToDataUrl(v);
   } else if (activeTab === 'upload') {
-    if (!uploadedDataUrl) { alert('Please upload an image first.'); return; }
+    if (!uploadedDataUrl) { showError('Please upload an image first.'); return; }
     dataUrl = uploadedDataUrl;
   }
   state.sigDataUrl = dataUrl;
@@ -2548,102 +3059,119 @@ document.getElementById('sigOk').onclick = () => {
   setPrefs(prefs);
   sigModal.classList.remove('open');
   if (state.fileType === 'docx') {
-    docEditor.focus();
-    const img = document.createElement('img');
-    img.src = dataUrl;
-    img.className = 'sig-inline';
-    img.style.maxWidth = '260px';
-    const sel = window.getSelection();
-    if (sel.rangeCount && docEditor.contains(sel.anchorNode)) {
-      const range = sel.getRangeAt(0);
-      range.deleteContents();
-      range.insertNode(img);
-      range.setStartAfter(img); range.setEndAfter(img);
-      sel.removeAllRanges(); sel.addRange(range);
-    } else {
-      docEditor.appendChild(img);
-    }
-    markDirty();
-    showToast('Signature inserted. Click it to resize or remove.');
+    beginDocSignaturePlacement(dataUrl);
   } else {
     setMode('sig');
     if (state.isDirty) scheduleDraftSave();
   }
 };
 
-const sigToolbar = document.getElementById('sigToolbar');
 let selectedSig = null;
 
-function selectSig(img) {
+function selectFloatingSig(wrap) {
+  if (selectedSig && selectedSig !== wrap) selectedSig.classList.remove('selected');
+  selectedSig = wrap || null;
+  if (wrap) wrap.classList.add('selected');
+}
+function deselectFloatingSig() {
   if (selectedSig) selectedSig.classList.remove('selected');
-  selectedSig = img;
-  if (!img) { sigToolbar.classList.remove('show'); return; }
-  img.classList.add('selected');
-  const r = img.getBoundingClientRect();
-  sigToolbar.style.left = (window.scrollX + r.left) + 'px';
-  sigToolbar.style.top = (window.scrollY + r.bottom + 6) + 'px';
-  sigToolbar.classList.add('show');
+  selectedSig = null;
 }
 
-docEditor.addEventListener('click', e => {
-  if (e.target.tagName === 'IMG' && e.target.classList.contains('sig-inline')) {
+function sigPointer(e) {
+  if (e.touches && e.touches[0]) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  return { x: e.clientX, y: e.clientY };
+}
+
+// Delegated drag / resize / delete for every floating signature in the editor.
+function onDocSigPointerDown(e) {
+  if (e.target.classList && e.target.classList.contains('sig-del')) {
+    e.preventDefault();
     e.stopPropagation();
-    selectSig(e.target);
-  } else {
-    selectSig(null);
+    const wrap = e.target.closest('.sig-float');
+    if (wrap) {
+      if (selectedSig === wrap) deselectFloatingSig();
+      wrap.remove();
+      updateDocPlaceholder();
+      markDirty();
+    }
+    return;
   }
+
+  const wrap = e.target.closest && e.target.closest('.sig-float');
+  if (!wrap) return;
+  e.preventDefault();
+  e.stopPropagation();
+  selectFloatingSig(wrap);
+
+  const resizing = e.target.classList && e.target.classList.contains('sig-resize');
+  const start = sigPointer(e);
+  const startLeft = parseFloat(wrap.style.left) || wrap.offsetLeft;
+  const startTop = parseFloat(wrap.style.top) || wrap.offsetTop;
+  const startW = wrap.offsetWidth;
+  const isTouch = !!e.touches;
+  const moveEvt = isTouch ? 'touchmove' : 'mousemove';
+  const upEvt = isTouch ? 'touchend' : 'mouseup';
+  let moved = false;
+  wrap.classList.add('dragging');
+
+  function move(ev) {
+    ev.preventDefault();
+    const p = sigPointer(ev);
+    const dx = p.x - start.x;
+    const dy = p.y - start.y;
+    moved = true;
+    if (resizing) {
+      const nw = Math.max(50, Math.min(docEditor.clientWidth, startW + dx));
+      wrap.style.width = nw + 'px';
+      clampSigToEditor(wrap);
+    } else {
+      wrap.style.left = (startLeft + dx) + 'px';
+      wrap.style.top = (startTop + dy) + 'px';
+      clampSigToEditor(wrap);
+    }
+  }
+  function up() {
+    wrap.classList.remove('dragging');
+    document.removeEventListener(moveEvt, move);
+    document.removeEventListener(upEvt, up);
+    if (moved) markDirty();
+  }
+  document.addEventListener(moveEvt, move, { passive: false });
+  document.addEventListener(upEvt, up);
+}
+docEditor.addEventListener('mousedown', onDocSigPointerDown);
+docEditor.addEventListener('touchstart', onDocSigPointerDown, { passive: false });
+
+docEditor.addEventListener('click', e => {
+  if (pendingDocSignatureDataUrl) {
+    if (e.target.closest('.sig-float')) { selectFloatingSig(e.target.closest('.sig-float')); return; }
+    e.preventDefault();
+    e.stopPropagation();
+    placeDocSignatureAt(pendingDocSignatureDataUrl, e.clientX, e.clientY);
+    endDocSignaturePlacement();
+    return;
+  }
+  if (!e.target.closest('.sig-float')) deselectFloatingSig();
 });
 docEditor.addEventListener('input', () => {
   if (state.fileType === 'docx') markDirty();
   updateDocPlaceholder();
 });
-document.addEventListener('click', e => {
-  if (!e.target.closest('#sigToolbar') && !e.target.closest('.sig-inline')) selectSig(null);
+document.addEventListener('mousedown', e => {
+  if (!e.target.closest('.sig-float') && !e.target.closest('#docEditor')) deselectFloatingSig();
 });
-window.addEventListener('scroll', () => { if (selectedSig) selectSig(selectedSig); });
-
-function ensureOwnBlock(img) {
-  const parent = img.parentElement;
-  if (parent === docEditor) {
-    const p = document.createElement('p');
-    docEditor.insertBefore(p, img);
-    p.appendChild(img);
-    return p;
+// Delete the selected signature with the Delete key.
+document.addEventListener('keydown', e => {
+  if (e.key === 'Delete' && selectedSig) {
+    const tag = (document.activeElement && document.activeElement.tagName) || '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+    e.preventDefault();
+    selectedSig.remove();
+    deselectFloatingSig();
+    updateDocPlaceholder();
+    markDirty();
   }
-  if (parent.childNodes.length === 1 && parent.firstChild === img) return parent;
-  const p = document.createElement('p');
-  parent.parentNode.insertBefore(p, parent.nextSibling);
-  p.appendChild(img);
-  return p;
-}
-
-sigToolbar.addEventListener('click', e => {
-  const btn = e.target.closest('button'); if (!btn || !selectedSig) return;
-  const act = btn.dataset.act;
-  const img = selectedSig;
-  const curW = parseInt(img.style.maxWidth) || img.offsetWidth || 260;
-  if (act === 'smaller') img.style.maxWidth = Math.max(60, curW - 40) + 'px';
-  else if (act === 'bigger') img.style.maxWidth = (curW + 40) + 'px';
-  else if (act === 'remove') { img.remove(); selectSig(null); markDirty(); return; }
-  else if (act === 'newline') { ensureOwnBlock(img); }
-  else if (act === 'up') {
-    const block = ensureOwnBlock(img);
-    if (block.previousElementSibling) block.parentNode.insertBefore(block, block.previousElementSibling);
-  } else if (act === 'down') {
-    const block = ensureOwnBlock(img);
-    if (block.nextElementSibling) block.parentNode.insertBefore(block.nextElementSibling, block);
-  } else if (act === 'top') {
-    const block = ensureOwnBlock(img);
-    docEditor.insertBefore(block, docEditor.firstChild);
-  } else if (act === 'bottom') {
-    const block = ensureOwnBlock(img);
-    docEditor.appendChild(block);
-  } else if (act === 'align-left' || act === 'align-center' || act === 'align-right') {
-    const block = ensureOwnBlock(img);
-    block.style.textAlign = act.split('-')[1];
-  }
-  markDirty();
-  selectSig(img);
 });
 
 function trimCanvas(c) {
@@ -2681,6 +3209,42 @@ saveBtn.onclick = async () => {
       const s = state.pages[it.pageIndex];
       const sx = pw / s.width, sy = ph / s.height;
       const x = it.x * sx;
+      if (it.type === 'erase') {
+        page.drawRectangle({
+          x,
+          y: ph - (it.y + it.h) * sy,
+          width: it.w * sx,
+          height: it.h * sy,
+          color: rgb(1, 1, 1),
+        });
+        continue;
+      }
+      if (it.type === 'etext') {
+        const newText = it.text || '';
+        if (newText === it.original) continue;
+        const size = it.pdfFontSize || 12;
+        const rectX = (it.pdfX || 0) - 0.5;
+        const rectY = (it.pdfBaselineY || 0) - size * 0.22;
+        const rectW = (it.pdfWidth || 0) + size * 0.5 + 1;
+        const rectH = size * 1.25;
+        page.drawRectangle({
+          x: rectX,
+          y: rectY,
+          width: rectW,
+          height: rectH,
+          color: rgb(1, 1, 1),
+        });
+        if (newText.length) {
+          page.drawText(sanitizeWinAnsi(newText), {
+            x: it.pdfX || 0,
+            y: it.pdfBaselineY || 0,
+            size,
+            font,
+            color: rgb(0, 0, 0),
+          });
+        }
+        continue;
+      }
       if (it.type === 'text') {
         const text = (it.text || '').trim();
         if (!text) continue;
@@ -2689,11 +3253,14 @@ saveBtn.onclick = async () => {
         const lhPx = fontPx * 1.2;
         (it.text || '').split('\n').forEach((ln, i) => {
           const yTopPx = it.y + fontPx + i * lhPx;
-          page.drawText(ln, { x, y: ph - yTopPx * sy, size, font, color: rgb(0,0,0) });
+          page.drawText(sanitizeWinAnsi(ln), { x, y: ph - yTopPx * sy, size, font, color: rgb(0,0,0) });
         });
       } else if (it.type === 'sig') {
-        const pngBytes = dataUrlToUint8Array(it.dataUrl);
-        const img = await doc.embedPng(pngBytes);
+        const imageBytes = dataUrlToUint8Array(it.dataUrl);
+        const mime = getDataUrlMime(it.dataUrl);
+        const img = mime === 'image/jpeg' || mime === 'image/jpg'
+          ? await doc.embedJpg(imageBytes)
+          : await doc.embedPng(imageBytes);
         const w = it.w * sx, h = it.h * sy;
         page.drawImage(img, { x, y: ph - (it.y + it.h) * sy, width: w, height: h });
       }
@@ -2703,9 +3270,9 @@ saveBtn.onclick = async () => {
     triggerDownload(blob, state.fileName + '-edited.pdf');
     clearDraft();
     markDirty(false);
-    showToast('PDF exported.');
+    showToast('PDF exported.', 'success');
   } catch (err) {
-    alert('Save failed: ' + err.message);
+    showError('Save failed: ' + err.message);
     console.error(err);
   } finally {
     setBusy(false);
@@ -2713,11 +3280,61 @@ saveBtn.onclick = async () => {
   }
 };
 
+// Floating signatures are absolutely positioned, which DOCX can't represent.
+// Flatten each one into an inline image placed after the nearest paragraph,
+// aligned left/center/right to approximate its horizontal position.
+function buildDocxExportHtml() {
+  const floats = [...docEditor.querySelectorAll('.sig-float')];
+  if (!floats.length) return docEditor.innerHTML;
+
+  const editorRect = docEditor.getBoundingClientRect();
+  const children = [...docEditor.children];
+  children.forEach((c, i) => { c.dataset.expIdx = i; });
+
+  const placements = floats.map(f => {
+    const r = f.getBoundingClientRect();
+    const top = r.top - editorRect.top;
+    let idx = -1;
+    children.forEach((c, i) => {
+      if (c.classList.contains('sig-float')) return;
+      if (c.getBoundingClientRect().top - editorRect.top <= top + 4) idx = i;
+    });
+    return {
+      idx,
+      width: f.offsetWidth,
+      frac: editorRect.width ? (r.left - editorRect.left) / editorRect.width : 0,
+      src: f.querySelector('img').src,
+    };
+  });
+
+  const clone = docEditor.cloneNode(true);
+  clone.querySelectorAll('.sig-float').forEach(n => n.remove());
+  const cloneChildren = [...clone.children];
+
+  placements.forEach(pl => {
+    const img = document.createElement('img');
+    img.src = pl.src;
+    img.style.width = pl.width + 'px';
+    img.style.display = 'inline-block';
+    const p = document.createElement('p');
+    p.style.margin = '4px 0';
+    p.style.textAlign = pl.frac > 0.62 ? 'right' : pl.frac > 0.25 ? 'center' : 'left';
+    p.appendChild(img);
+    const ref = cloneChildren.find(c => Number(c.dataset.expIdx) === pl.idx);
+    if (ref && ref.parentNode) ref.parentNode.insertBefore(p, ref.nextSibling);
+    else clone.appendChild(p);
+  });
+
+  clone.querySelectorAll('[data-exp-idx]').forEach(n => n.removeAttribute('data-exp-idx'));
+  children.forEach(c => { delete c.dataset.expIdx; });
+  return clone.innerHTML;
+}
+
 async function saveDocx() {
   saveBtn.disabled = true; saveBtn.textContent = 'Saving...';
   setBusy(true, 'Exporting DOCX', 'Packaging the edited document.');
   try {
-    const bodyHtml = docEditor.innerHTML;
+    const bodyHtml = buildDocxExportHtml();
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
       body { font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.5; }
       img { max-width: 100%; }
@@ -2728,9 +3345,9 @@ async function saveDocx() {
     triggerDownload(blob, state.fileName + '-edited.docx');
     clearDraft();
     markDirty(false);
-    showToast('DOCX exported.');
+    showToast('DOCX exported.', 'success');
   } catch (err) {
-    alert('Save failed: ' + err.message); console.error(err);
+    showError('Save failed: ' + err.message); console.error(err);
   } finally {
     setBusy(false);
     saveBtn.disabled = false; saveBtn.innerHTML = '<span class="btn-icon">&#8615;</span> Save .docx';
